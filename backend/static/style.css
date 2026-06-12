@@ -94,12 +94,73 @@ button,input,textarea,select{font-family:var(--font-body)}
 .feature-pill{background:var(--card);border:1px solid var(--border);padding:7px 14px;border-radius:100px;color:var(--muted);font-size:12px;font-weight:600;transition:all .2s}
 .feature-pill:hover{border-color:var(--purple);color:var(--text)}
 
-/* AUTH responsive: collapse hero on tablet/phone */
+/* Mobile auth pieces are hidden on desktop; the wrapper is transparent */
+.auth-mobile-hero{display:none}
+.auth-sheet{display:contents}
+
+/* AUTH responsive: full mobile onboarding (hero band + form sheet) */
 @media (max-width:900px){
   .auth-hero{display:none}
-  .auth-panel{flex:1;padding:18px}
-  .auth-mini-brand{display:flex}
-  .auth-container{max-width:430px;background:var(--theme-card)}
+  .auth-mini-brand{display:none}
+  .auth-features{display:none}
+  .auth-panel{flex:1;padding:0;align-items:stretch}
+  .auth-container{
+    max-width:100%;width:100%;min-height:100vh;min-height:100dvh;
+    padding:0;border:0;border-radius:0;box-shadow:none;backdrop-filter:none;
+    background:var(--theme-bg);display:flex;flex-direction:column;
+  }
+
+  /* ── Hero band ── */
+  .auth-mobile-hero{
+    display:flex;flex-direction:column;position:relative;overflow:hidden;
+    padding:calc(env(safe-area-inset-top) + 54px) 24px 40px;
+    background:
+      radial-gradient(ellipse at 16% 14%,rgba(var(--rgb-primary),.55),transparent 60%),
+      radial-gradient(ellipse at 92% 4%,rgba(var(--rgb-primary-light),.30),transparent 56%),
+      linear-gradient(160deg,var(--purple-deep) 0%,var(--theme-bg) 82%);
+  }
+  .auth-mobile-hero::after{
+    content:"";position:absolute;inset:0;pointer-events:none;opacity:.4;
+    background:linear-gradient(rgba(255,255,255,.06) 1px,transparent 1px),
+              linear-gradient(90deg,rgba(255,255,255,.06) 1px,transparent 1px);
+    background-size:40px 40px;mask-image:radial-gradient(ellipse at 30% 30%,#000,transparent 75%);
+  }
+  .amh-brand{position:relative;z-index:1;display:flex;align-items:center;gap:10px;margin-bottom:34px}
+  .amh-mark{
+    display:grid;place-items:center;width:42px;height:42px;border-radius:12px;
+    background:linear-gradient(135deg,#fff,#e9e3ff);color:var(--purple-deep);
+    font-family:var(--font-display);font-weight:800;font-size:16px;letter-spacing:-.04em;
+    box-shadow:0 8px 24px rgba(0,0,0,.32);
+  }
+  .amh-name{font-family:var(--font-display);font-weight:800;font-size:20px;color:#fff;letter-spacing:-.02em}
+  .amh-title{
+    position:relative;z-index:1;font-family:var(--font-display);font-weight:800;color:#fff;
+    font-size:clamp(30px,8.5vw,40px);line-height:1.04;letter-spacing:-.03em;
+  }
+  .amh-title em{font-style:normal;background:linear-gradient(100deg,#fff,var(--purpleLt));
+    -webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+  .amh-sub{position:relative;z-index:1;margin-top:12px;max-width:330px;
+    color:rgba(255,255,255,.74);font-size:14px;line-height:1.55}
+  .amh-chips{position:relative;z-index:1;display:flex;flex-wrap:wrap;gap:8px;margin-top:20px}
+  .amh-chips span{
+    background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.16);
+    color:#fff;border-radius:100px;padding:7px 13px;font-size:12px;font-weight:600;
+    backdrop-filter:blur(6px);
+  }
+
+  /* ── Form sheet (overlaps the hero) ── */
+  .auth-sheet{
+    display:flex;flex-direction:column;flex:1;position:relative;z-index:2;
+    margin-top:-22px;padding:26px 22px calc(env(safe-area-inset-bottom) + 26px);
+    background:var(--theme-bg);border-radius:24px 24px 0 0;
+    box-shadow:0 -16px 40px rgba(0,0,0,.32);
+  }
+  .auth-logo{margin-bottom:18px}
+  .auth-logo h1{font-size:24px}
+  .input-group{padding:2px 14px}
+  .input-group input{padding:15px 0;font-size:15px}
+  .btn-primary{padding:15px 20px;font-size:15px}
+  .auth-tab{padding:13px}
 }
 
 /* ONBOARDING OVERLAY */
@@ -2510,4 +2571,19 @@ html[data-theme="ice"] .vo-adaptive-list strong{color:#0f172a}
     box-shadow:0 4px 14px rgba(var(--rgb-primary),.28);
   }
   .bnav-btn:active span{transform:scale(.9)}
+}
+
+/* Profile: logout button (mobile — desktop uses the sidebar logout) */
+.profile-logout-btn{display:none}
+@media (max-width:900px){
+  .profile-logout-btn{
+    display:block;width:100%;margin-top:18px;padding:15px;
+    background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.42);
+    color:#fca5a5;border-radius:14px;font-family:var(--font-body);
+    font-weight:800;font-size:15px;letter-spacing:.01em;cursor:pointer;
+    transition:background .2s,border-color .2s;
+  }
+  .profile-logout-btn:hover,.profile-logout-btn:active{
+    background:rgba(239,68,68,.22);border-color:rgba(239,68,68,.65);color:#fecaca;
+  }
 }

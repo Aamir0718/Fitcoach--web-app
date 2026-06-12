@@ -53,9 +53,17 @@
     <!-- RIGHT: auth panel -->
     <main class="auth-panel">
   <div class="auth-container">
+    <!-- Mobile-only hero band -->
+    <div class="auth-mobile-hero">
+      <div class="amh-brand"><span class="amh-mark">FC</span><span class="amh-name">FitCoach</span></div>
+      <h1 class="amh-title">Train smarter.<br><em>Get stronger.</em></h1>
+      <p class="amh-sub">Your AI strength coach — workouts, form, recovery &amp; nutrition, all in one place.</p>
+      <div class="amh-chips"><span>🤖 AI Coach</span><span>🛌 Recovery</span><span>📊 Progress</span></div>
+    </div>
     <div class="auth-mini-brand">
       <span class="auth-brand-mark">FC</span><span>FitCoach</span>
     </div>
+    <div class="auth-sheet">
     <div class="auth-logo">
       <h1 id="auth-headline">Welcome <span>back</span></h1>
       <p id="auth-subline">Sign in to continue your training</p>
@@ -146,6 +154,7 @@
       <div class="feature-pill">📊 Recovery</div>
       <div class="feature-pill">🏆 Badges</div>
     </div>
+    </div><!-- /auth-sheet -->
   </div>
     </main>
   </div>
@@ -942,6 +951,7 @@
           </div>
         </aside>
       </div>
+      <button class="profile-logout-btn" onclick="doLogout()">⎋ Log out</button>
     </div>
   </div>
 </div>

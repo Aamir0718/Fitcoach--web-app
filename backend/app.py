@@ -178,19 +178,46 @@ session_state    = PersistentSessionState()
 # EMAIL
 # ------------------------------------------------------------------------------
 def send_email(to_email, subject, html_body):
-    smtp_host = os.getenv("SMTP_HOST","smtp.gmail.com")
-    smtp_port = int(os.getenv("SMTP_PORT","587"))
-    smtp_user = os.getenv("SMTP_USER","")
-    smtp_pass = os.getenv("SMTP_PASS","")
+    sender = os.getenv("MAIL_FROM", "infoatfitcoachai@gmail.com")
+
+    # Preferred path (works on serverless / Vercel, where outbound SMTP is blocked):
+    # Brevo's transactional HTTP API — just an HTTPS request, no SMTP ports.
+    brevo_key = os.getenv("BREVO_API_KEY", "")
+    if brevo_key:
+        try:
+            import requests
+            r = requests.post(
+                "https://api.brevo.com/v3/smtp/email",
+                headers={"api-key": brevo_key, "Content-Type": "application/json"},
+                json={
+                    "sender":      {"name": "FitCoach", "email": sender},
+                    "to":          [{"email": to_email}],
+                    "subject":     subject,
+                    "htmlContent": html_body,
+                },
+                timeout=15,
+            )
+            if r.status_code in (200, 201):
+                return True
+            print(f"Brevo API error {r.status_code}: {r.text[:200]}")
+        except Exception as e:
+            print(f"Brevo API exception: {e}")
+        # fall through to SMTP if the API call failed
+
+    # Fallback: SMTP (local dev / traditional servers)
+    smtp_host = os.getenv("SMTP_HOST", "smtp.gmail.com")
+    smtp_port = int(os.getenv("SMTP_PORT", "587"))
+    smtp_user = os.getenv("SMTP_USER", "")
+    smtp_pass = os.getenv("SMTP_PASS", "")
     if not smtp_user:
         print(f"[DEV EMAIL] To:{to_email}\n{html_body}")
         return True
     try:
         msg = MIMEMultipart("alternative")
-        msg["Subject"] = subject; msg["From"] = "FitCoach <infoatfitcoachai@gmail.com>"; msg["To"] = to_email
-        msg.attach(MIMEText(html_body,"html"))
-        with smtplib.SMTP(smtp_host, smtp_port) as s:
-            s.starttls(); s.login(smtp_user, smtp_pass); s.sendmail(smtp_user, to_email, msg.as_string())
+        msg["Subject"] = subject; msg["From"] = f"FitCoach <{sender}>"; msg["To"] = to_email
+        msg.attach(MIMEText(html_body, "html"))
+        with smtplib.SMTP(smtp_host, smtp_port, timeout=15) as s:
+            s.starttls(); s.login(smtp_user, smtp_pass); s.sendmail(sender, to_email, msg.as_string())
         return True
     except Exception as e:
         print(f"Email error: {e}"); return False
@@ -1128,7 +1155,9 @@ def send_otp_route():
     otp = generate_otp()
     save_otp(email, otp, purpose)
     subjects = {"verify":"Verify your FitCoach account","login":"Your FitCoach login code","reset":"Reset FitCoach password"}
-    send_email(email, subjects.get(purpose,"FitCoach OTP"), otp_email_html(otp, purpose))
+    sent = send_email(email, subjects.get(purpose,"FitCoach OTP"), otp_email_html(otp, purpose))
+    if not sent:
+        return jsonify({"error":"Could not send the OTP email right now. Please try again."}), 502
     return jsonify({"message":f"OTP sent to {email}"})
 
 @app.route("/api/verify-otp", methods=["POST"])

@@ -11,15 +11,119 @@ DB_NAME = os.environ.get("DB_PATH") or (
     "/tmp/users.db" if os.environ.get("VERCEL") else os.path.join(BASE_DIR, "users.db")
 )
 
-def get_connection():
-    conn = sqlite3.connect(DB_NAME, timeout=30, check_same_thread=False)
-    conn.row_factory = sqlite3.Row
-    # WAL mode: allows concurrent reads during writes — essential for multi-request servers
-    conn.execute("PRAGMA journal_mode=WAL")
-    conn.execute("PRAGMA synchronous=NORMAL")
-    conn.execute("PRAGMA cache_size=-8000")   # 8 MB page cache
-    conn.execute("PRAGMA foreign_keys=ON")
-    return conn
+# ── Database backend selection ────────────────────────────────────────
+# If Turso (hosted libSQL) env vars are present (production / Vercel), use it so
+# data persists across serverless invocations. Otherwise use local SQLite (dev).
+# The Turso wrapper below mimics the small slice of the sqlite3 API this module
+# relies on (cursor / execute / fetchone / fetchall / commit / close + dict-style
+# rows), so the rest of db.py works unchanged on either backend.
+TURSO_URL   = os.environ.get("TURSO_DATABASE_URL")
+TURSO_TOKEN = os.environ.get("TURSO_AUTH_TOKEN")
+USE_TURSO   = bool(TURSO_URL and TURSO_TOKEN)
+
+class TursoError(Exception):
+    """Raised when the Turso HTTP API returns a statement error."""
+    pass
+
+if USE_TURSO:
+    import requests, base64
+    # Turso's HTTP "pipeline" API. (libsql:// -> https://; the WS client and the
+    # libsql-client pip package are avoided — the latter mishandles SQL errors.)
+    _TURSO_PIPELINE = TURSO_URL.replace("libsql://", "https://").rstrip("/") + "/v2/pipeline"
+    _session = requests.Session()
+    _session.headers.update({"Authorization": f"Bearer {TURSO_TOKEN}"})
+
+    def _encode_arg(v):
+        if v is None:                       return {"type": "null"}
+        if isinstance(v, bool):             return {"type": "integer", "value": str(int(v))}
+        if isinstance(v, int):              return {"type": "integer", "value": str(v)}
+        if isinstance(v, float):            return {"type": "float",   "value": v}
+        if isinstance(v, (bytes, bytearray)):
+            return {"type": "blob", "base64": base64.b64encode(bytes(v)).decode()}
+        return {"type": "text", "value": str(v)}
+
+    def _decode_cell(c):
+        t = c.get("type")
+        if t == "null":    return None
+        if t == "integer": return int(c.get("value"))
+        if t == "float":   return float(c.get("value"))
+        if t == "blob":    return base64.b64decode(c.get("base64", ""))
+        return c.get("value")
+
+    def _turso_execute(sql, args=()):
+        body = {"requests": [
+            {"type": "execute", "stmt": {"sql": sql, "args": [_encode_arg(a) for a in args]}},
+            {"type": "close"},
+        ]}
+        r = _session.post(_TURSO_PIPELINE, json=body, timeout=30)
+        r.raise_for_status()
+        res = r.json()["results"][0]
+        if res.get("type") == "error":
+            raise TursoError(res.get("error", {}).get("message", "Turso error"))
+        result = res["response"]["result"]
+        cols = [c["name"] for c in result["cols"]]
+        rows = [dict(zip(cols, [_decode_cell(c) for c in row])) for row in result["rows"]]
+        last_id = result.get("last_insert_rowid")
+        return rows, (int(last_id) if last_id is not None else None), result.get("affected_row_count", -1)
+
+    class _TursoCursor:
+        def __init__(self):
+            self._rows = []
+            self.lastrowid = None
+            self.rowcount = -1
+
+        def execute(self, sql, params=()):
+            if sql.lstrip()[:6].lower() == "pragma":   # local-SQLite only; ignore remotely
+                return self
+            self._rows, self.lastrowid, self.rowcount = _turso_execute(sql, params)
+            return self
+
+        def fetchone(self):
+            return self._rows[0] if self._rows else None
+
+        def fetchall(self):
+            return self._rows
+
+        def close(self):
+            pass
+
+    class _TursoConnection:
+        def cursor(self):
+            return _TursoCursor()
+
+        def execute(self, sql, params=()):
+            cur = _TursoCursor()
+            cur.execute(sql, params)
+            return cur
+
+        def commit(self):
+            pass  # each statement auto-commits over HTTP
+
+        def close(self):
+            pass
+
+    def get_connection():
+        return _TursoConnection()
+
+else:
+    def get_connection():
+        conn = sqlite3.connect(DB_NAME, timeout=30, check_same_thread=False)
+        conn.row_factory = sqlite3.Row
+        # WAL mode: allows concurrent reads during writes — essential for multi-request servers
+        conn.execute("PRAGMA journal_mode=WAL")
+        conn.execute("PRAGMA synchronous=NORMAL")
+        conn.execute("PRAGMA cache_size=-8000")   # 8 MB page cache
+        conn.execute("PRAGMA foreign_keys=ON")
+        return conn
+
+# Exceptions that signal a UNIQUE/constraint violation, across both backends.
+_INTEGRITY_ERRORS = (sqlite3.IntegrityError, TursoError)
+
+def _is_unique_violation(e):
+    if isinstance(e, sqlite3.IntegrityError):
+        return True
+    msg = str(e).lower()
+    return "unique" in msg or "constraint" in msg
 
 def init_db():
     conn = get_connection()
@@ -221,8 +325,10 @@ def create_auth(user_id, email, password_hash):
                   (user_id, email, password_hash))
         conn.commit()
         return True
-    except sqlite3.IntegrityError:
-        return False
+    except _INTEGRITY_ERRORS as e:
+        if _is_unique_violation(e):
+            return False
+        raise
     finally:
         conn.close()
 

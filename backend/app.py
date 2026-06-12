@@ -12,7 +12,7 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from groq import Groq
 
-from db import (
+from backend.db import (
     init_db, get_user, save_user, log_workout, get_last_workout,
     days_since_last_workout, workout_streak, save_ai_memory,
     get_recent_ai_memory, log_weight, get_weight_progress,
@@ -27,11 +27,11 @@ from db import (
     save_session_state, load_session_state,
 )
  
-from weekly_plan_engine import (
+from backend.weekly_plan_engine import (
     generate_weekly_plan, get_todays_slot, swap_today_workout,
     get_weekly_plan_summary, detect_swap_intent,
 )
-from fitness_engine import (
+from backend.fitness_engine import (
     build_workout as engine_build_workout,
     coach_preview as engine_coach_preview,
     contextual_greeting as engine_contextual_greeting,
@@ -41,7 +41,7 @@ from fitness_engine import (
     SESSION_LABELS,
     parse_rep_target as engine_parse_rep_target,
 )
-from models import UserProfile
+from backend.models import UserProfile
 
 load_dotenv()
 init_db()

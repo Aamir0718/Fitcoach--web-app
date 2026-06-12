@@ -7,12 +7,16 @@ from flask_limiter.util import get_remote_address
 from werkzeug.security import generate_password_hash, check_password_hash
 from dotenv import load_dotenv
 from datetime import date, datetime, timedelta
-import os, uuid, re, random, smtplib, json, hashlib
+import os, sys, uuid, re, random, smtplib, json, hashlib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from groq import Groq
 
-from backend.db import (
+# Make local modules importable regardless of how the app is launched
+# (python app.py locally, gunicorn, or Vercel's serverless entrypoint).
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from db import (
     init_db, get_user, save_user, log_workout, get_last_workout,
     days_since_last_workout, workout_streak, save_ai_memory,
     get_recent_ai_memory, log_weight, get_weight_progress,
@@ -27,11 +31,11 @@ from backend.db import (
     save_session_state, load_session_state,
 )
  
-from backend.weekly_plan_engine import (
+from weekly_plan_engine import (
     generate_weekly_plan, get_todays_slot, swap_today_workout,
     get_weekly_plan_summary, detect_swap_intent,
 )
-from backend.fitness_engine import (
+from fitness_engine import (
     build_workout as engine_build_workout,
     coach_preview as engine_coach_preview,
     contextual_greeting as engine_contextual_greeting,
@@ -41,7 +45,7 @@ from backend.fitness_engine import (
     SESSION_LABELS,
     parse_rep_target as engine_parse_rep_target,
 )
-from backend.models import UserProfile
+from models import UserProfile
 
 load_dotenv()
 init_db()

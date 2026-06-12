@@ -5,7 +5,11 @@ from datetime import datetime, timedelta
 import os, json
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DB_NAME = os.path.join(BASE_DIR, "users.db")
+# DB location: explicit DB_PATH wins; on Vercel the app dir is read-only so use /tmp;
+# otherwise store next to the code for local/dev and traditional servers.
+DB_NAME = os.environ.get("DB_PATH") or (
+    "/tmp/users.db" if os.environ.get("VERCEL") else os.path.join(BASE_DIR, "users.db")
+)
 
 def get_connection():
     conn = sqlite3.connect(DB_NAME, timeout=30, check_same_thread=False)

@@ -1188,8 +1188,8 @@ input[type="range"]{width:100%;accent-color:var(--purple);height:6px;border-radi
 .week-bar.today{background:linear-gradient(180deg,#d8b4fe,#60a5fa);box-shadow:0 0 22px rgba(var(--rgb-primary-light),.42)}
 .quote-text{font-size:14px;color:#dce2ef}
 .home-tip-card{background:linear-gradient(135deg,rgba(16,185,129,.1),rgba(13,15,28,.74))}
-.tab-content.active{animation:pageEnter .34s cubic-bezier(.2,.8,.2,1)}
-@keyframes pageEnter{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+.tab-content.active{animation:pageEnter .22s ease}
+@keyframes pageEnter{from{opacity:0}to{opacity:1}}
 .stat-card,.chart-card,.badges-section,.cal-input-card,.cal-result,.profile-form,.rf-section,.recovery-score-card,.ghost-stat-card,.ghost-depth-card,.ghost-brief-card,.ghost-muscle-card,.ghost-demo-card{background:linear-gradient(180deg,rgba(17,19,31,.82),rgba(10,12,23,.74));border-color:rgba(var(--rgb-primary-light),.12);backdrop-filter:blur(16px);transition:transform .24s ease,border-color .24s ease,box-shadow .24s ease}
 .stat-card:hover,.chart-card:hover,.badges-section:hover,.cal-input-card:hover,.profile-form:hover,.rf-section:hover,.ghost-stat-card:hover,.ghost-depth-card:hover,.ghost-brief-card:hover,.ghost-muscle-card:hover,.ghost-demo-card:hover{transform:translateY(-3px);border-color:rgba(var(--rgb-primary-light),.28);box-shadow:0 26px 80px rgba(0,0,0,.36),0 0 42px rgba(var(--rgb-primary),.12)}
 @media (prefers-reduced-motion: reduce) {
@@ -2422,8 +2422,9 @@ html[data-theme="ice"] .vo-adaptive-list strong{color:#0f172a}
    Caps oversized heroes/headings, centers wide layouts.
    Authoritative: matches existing selectors, wins by source order.
    ============================================================ */
-/* Shells: cap width on big laptops, trim padding */
-.chat-shell,.ghost-shell,.profile-shell,.recovery-shell,.progress-shell,.calories-shell{max-width:1180px;margin-left:auto;margin-right:auto}
+/* Shells: cap width on big laptops, trim padding. width:100% keeps every tab the
+   same width so switching tabs never shifts the layout. */
+.chat-shell,.ghost-shell,.profile-shell,.recovery-shell,.progress-shell,.calories-shell{max-width:1180px;width:100%;margin-left:auto;margin-right:auto}
 .profile-shell,.recovery-shell{padding:24px 28px 36px}
 .ghost-shell{padding:24px 28px 36px}
 .progress-shell{padding:24px 28px 36px}
@@ -2573,17 +2574,25 @@ html[data-theme="ice"] .vo-adaptive-list strong{color:#0f172a}
   .bnav-btn:active span{transform:scale(.9)}
 }
 
-/* Profile: logout button (mobile — desktop uses the sidebar logout) */
-.profile-logout-btn{display:none}
+/* Profile: logout button (shown on every screen size; lives in Profile) */
+.profile-logout-btn{
+  display:inline-block;margin-top:22px;padding:13px 28px;
+  background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.42);
+  color:#fca5a5;border-radius:14px;font-family:var(--font-body);
+  font-weight:800;font-size:15px;letter-spacing:.01em;cursor:pointer;
+  transition:background .2s,border-color .2s,color .2s;
+}
+.profile-logout-btn:hover,.profile-logout-btn:active{
+  background:rgba(239,68,68,.22);border-color:rgba(239,68,68,.65);color:#fecaca;
+}
 @media (max-width:900px){
-  .profile-logout-btn{
-    display:block;width:100%;margin-top:18px;padding:15px;
-    background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.42);
-    color:#fca5a5;border-radius:14px;font-family:var(--font-body);
-    font-weight:800;font-size:15px;letter-spacing:.01em;cursor:pointer;
-    transition:background .2s,border-color .2s;
-  }
-  .profile-logout-btn:hover,.profile-logout-btn:active{
-    background:rgba(239,68,68,.22);border-color:rgba(239,68,68,.65);color:#fecaca;
-  }
+  .profile-logout-btn{display:block;width:100%;text-align:center}
+}
+
+/* Stop tab switches from shifting layout: always reserve the scrollbar gutter so
+   moving between a short tab (no scrollbar) and a tall one (scrollbar) doesn't
+   nudge the centered content sideways. */
+.home-shell,.progress-shell,.calories-shell,.profile-shell,
+.recovery-shell,.ghost-shell,.visual-os-shell{
+  scrollbar-gutter: stable;
 }

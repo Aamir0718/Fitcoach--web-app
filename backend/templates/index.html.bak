@@ -1,0 +1,1131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <meta name="apple-mobile-web-app-capable" content="yes"/>
+  <meta name="mobile-web-app-capable" content="yes"/>
+  <title>FitCoach AI</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+  <script>
+    (function () {
+      var savedTheme = localStorage.getItem("fc_athlete_theme") || "galaxy";
+      document.documentElement.setAttribute("data-theme", savedTheme);
+      if (localStorage.getItem("fc_theme_auto") === "1") {
+        document.documentElement.setAttribute("data-theme-auto", "true");
+      }
+    })();
+  </script>
+  <link rel="stylesheet" href="/static/style.css"/>
+  <script>
+    window.FC_INITIAL_TAB = "{{ initial_tab|default('home') }}";
+  </script>
+</head>
+<body>
+
+<!-- ==================== AUTH SCREEN ==================== -->
+<div id="auth-screen" class="screen active">
+  <div class="auth-bg">
+    <div class="auth-blob blob1"></div>
+    <div class="auth-blob blob2"></div>
+    <div class="auth-blob blob3"></div>
+  </div>
+  <div class="auth-container">
+    <div class="auth-logo">
+      <div class="logo-icon">⚡</div>
+      <h1>FitCoach <span>AI</span></h1>
+      <p>Your AI-powered personal trainer</p>
+    </div>
+    <div class="auth-tabs">
+      <button class="auth-tab active" onclick="switchAuthTab('login')">Sign In</button>
+      <button class="auth-tab" onclick="switchAuthTab('signup')">Sign Up</button>
+    </div>
+
+    <!-- LOGIN -->
+    <div id="login-form" class="auth-form">
+      <div class="input-group">
+        <span class="input-icon">📧</span>
+        <input type="email" id="login-email" placeholder="Email address" autocomplete="email"/>
+      </div>
+      <div class="login-method-toggle">
+        <button class="method-btn active" id="method-password-btn" onclick="switchLoginMethod('password')">🔒 Password</button>
+        <button class="method-btn" id="method-otp-btn" onclick="switchLoginMethod('otp')">📱 OTP</button>
+      </div>
+      <div id="login-password-section">
+        <div class="input-group">
+          <span class="input-icon">🔒</span>
+          <input type="password" id="login-password" placeholder="Password" autocomplete="current-password"/>
+        </div>
+        <div class="forgot-link" onclick="showForgotPassword()">Forgot password?</div>
+        <button id="login-btn" class="btn-primary" onclick="doLogin()"><span>Sign In</span><span class="btn-arrow">→</span></button>
+      </div>
+      <div id="login-otp-section" class="hidden">
+        <button class="btn-primary btn-outline" onclick="sendLoginOTP()"><span>Send OTP to Email</span></button>
+        <div id="login-otp-input-wrap" class="hidden">
+          <div class="input-group" style="margin-top:10px">
+            <span class="input-icon">🔢</span>
+            <input type="text" id="login-otp-code" placeholder="6-digit OTP" maxlength="6" inputmode="numeric"/>
+          </div>
+          <button class="btn-primary" style="margin-top:10px" onclick="doLoginOTP()"><span>Verify & Sign In</span><span class="btn-arrow">→</span></button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SIGNUP -->
+    <div id="signup-form" class="auth-form hidden">
+      <div class="input-group">
+        <span class="input-icon">📧</span>
+        <input type="email" id="signup-email" placeholder="Email address" autocomplete="email"/>
+      </div>
+      <div class="input-group">
+        <span class="input-icon">🔒</span>
+        <input type="password" id="signup-password" placeholder="Password (min 6 chars)" autocomplete="new-password"/>
+      </div>
+      <button class="btn-primary btn-outline" id="signup-send-otp-btn" onclick="sendSignupOTP()"><span>Verify Email with OTP</span></button>
+      <div id="signup-otp-section" class="hidden">
+        <div class="input-group">
+          <span class="input-icon">🔢</span>
+          <input type="text" id="signup-otp-code" placeholder="OTP from email" maxlength="6" inputmode="numeric"/>
+        </div>
+        <button id="signup-btn" class="btn-primary" style="margin-top:10px" onclick="doSignup()"><span>Create Account</span><span class="btn-arrow">→</span></button>
+      </div>
+    </div>
+
+    <!-- FORGOT -->
+    <div id="forgot-form" class="auth-form hidden">
+      <p class="forgot-title">Reset your password</p>
+      <div id="forgot-step1">
+        <div class="input-group">
+          <span class="input-icon">📧</span>
+          <input type="email" id="forgot-email" placeholder="Your email"/>
+        </div>
+        <button class="btn-primary" style="margin-top:10px" onclick="sendResetOTP()"><span>Send Reset Code</span><span class="btn-arrow">→</span></button>
+      </div>
+      <div id="forgot-step2" class="hidden">
+        <div class="input-group">
+          <span class="input-icon">🔢</span>
+          <input type="text" id="forgot-otp" placeholder="OTP from email" maxlength="6" inputmode="numeric"/>
+        </div>
+        <div class="input-group" style="margin-top:10px">
+          <span class="input-icon">🔒</span>
+          <input type="password" id="forgot-newpass" placeholder="New password"/>
+        </div>
+        <button class="btn-primary" style="margin-top:10px" onclick="doResetPassword()"><span>Reset Password</span><span class="btn-arrow">→</span></button>
+      </div>
+      <div class="forgot-link" style="margin-top:12px" onclick="showLoginForm()">← Back to sign in</div>
+    </div>
+
+    <div id="auth-error" class="auth-error hidden"></div>
+    <div class="auth-features">
+      <div class="feature-pill">🤖 AI Coach</div>
+      <div class="feature-pill">🏏 Sport Mode</div>
+      <div class="feature-pill">📊 Recovery</div>
+      <div class="feature-pill">🏆 Badges</div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== MAIN APP ==================== -->
+<div id="app-screen" class="screen">
+
+  <!-- SIDEBAR (desktop) -->
+  <nav class="sidebar">
+    <div class="sidebar-logo"><i class="brand-core">AI</i><span>FitCoach</span><small>ATHLETE OS</small></div>
+    <div class="sidebar-pulse-card">
+      <div class="pulse-orb"></div>
+      <div><strong>Neural Coach</strong><span>systems online</span></div>
+    </div>
+    <div class="nav-links">
+      <button class="nav-btn active" onclick="switchTab('home')" data-tab="home">
+        <span class="nav-icon">🏠</span><span>Home</span>
+      </button>
+      <button class="nav-btn" onclick="switchTab('chat')" data-tab="chat"><span class="nav-icon">💬</span><span>Coach</span></button>
+      <button class="nav-btn" onclick="switchTab('trainer')" data-tab="trainer"><span class="nav-icon">◎</span><span>Ghost Trainer</span></button>
+      <button class="nav-btn" onclick="switchTab('recovery')" data-tab="recovery"><span class="nav-icon">🛌</span><span>Recovery</span></button>
+      <button class="nav-btn" onclick="switchTab('progress')" data-tab="progress"><span class="nav-icon">📊</span><span>Progress</span></button>
+      <button class="nav-btn" onclick="switchTab('calories')" data-tab="calories"><span class="nav-icon">🥗</span><span>Calories</span></button>
+      <button class="nav-btn" onclick="switchTab('visualos')" data-tab="visualos"><span class="nav-icon">✨</span><span>Visual OS</span></button>
+      <button class="nav-btn" onclick="switchTab('profile')" data-tab="profile"><span class="nav-icon">👤</span><span>Profile</span></button>
+    </div>
+    <!-- Mode toggle in sidebar -->
+    <div class="sidebar-mode-toggle" id="sidebar-mode-toggle">
+      <button class="mode-btn active" id="mode-gym-btn" onclick="setWorkoutMode('gym')">🏋️ Gym</button>
+      <button class="mode-btn" id="mode-sport-btn" onclick="setWorkoutMode('sport')">🏆 Sport</button>
+    </div>
+    <div class="sidebar-mini-metrics">
+      <div><span>Mode</span><strong id="sidebar-mode-readout">Gym</strong></div>
+      <div><span>AI</span><strong>Live</strong></div>
+    </div>
+    <button class="nav-logout" onclick="doLogout()">Logout</button>
+  </nav>
+
+  <!-- MOBILE BOTTOM NAV -->
+  <nav class="bottom-nav">
+    <button class="nav-btn active" onclick="switchTab('home')" data-tab="home">
+      <span class="nav-icon">🏠</span><span>Home</span>
+    </button>
+    <button class="bnav-btn" onclick="switchTab('chat')" data-tab="chat"><span>💬</span><small>Coach</small></button>
+    <button class="bnav-btn" onclick="switchTab('trainer')" data-tab="trainer"><span>◎</span><small>Trainer</small></button>
+    <button class="bnav-btn" onclick="switchTab('recovery')" data-tab="recovery"><span>🛌</span><small>Recovery</small></button>
+    <button class="bnav-btn" onclick="switchTab('progress')" data-tab="progress"><span>📊</span><small>Progress</small></button>
+    <button class="bnav-btn" onclick="switchTab('calories')" data-tab="calories"><span>🥗</span><small>Calories</small></button>
+    <button class="bnav-btn" onclick="switchTab('visualos')" data-tab="visualos"><span>✨</span><small>Visual OS</small></button>
+    <button class="bnav-btn" onclick="switchTab('profile')" data-tab="profile"><span>👤</span><small>Profile</small></button>
+  </nav>
+
+  <!-- ===== CHAT TAB ===== -->
+  <!-- ============================================================
+     PASTE THIS BLOCK in index.html
+     
+     WHERE: Find this line in index.html:
+       <!-- ===== CHAT TAB ===== -->
+  
+    
+
+  <!-- ===== HOME TAB ===== -->
+  <div id="tab-home" class="tab-content active">
+    <div class="home-shell">
+
+      <!-- TOP: Greeting + Streak -->
+      <div class="home-hero">
+        <div class="home-hero-left">
+          <div class="home-greeting" id="home-greeting">Good afternoon</div>
+          <div class="home-name" id="home-name">Athlete</div>
+          <div class="home-subtitle" id="home-subtitle">Let's crush today's session</div>
+        </div>
+        <div class="home-streak-pill" id="home-streak-pill">
+          <span class="streak-fire">🔥</span>
+          <span id="home-streak-count">0</span>
+          <span class="streak-label">day streak</span>
+        </div>
+      </div>
+
+      <!-- RECOVERY BANNER -->
+      <div class="home-recovery-bar" id="home-recovery-bar" style="display:none">
+        <div class="hrb-dot" id="home-recovery-dot"></div>
+        <span id="home-recovery-text">Recovery: Unknown</span>
+        <button class="hrb-action" onclick="switchTab('recovery')">Log today →</button>
+      </div>
+
+      <!-- 2-COLUMN MAIN GRID -->
+      <div class="home-main-grid">
+
+        <!-- LEFT: CTA + Stats + Quick Access -->
+        <div class="home-left">
+
+          <!-- CTA workout card -->
+          <div class="home-cta-card" id="home-cta-card" onclick="switchTab('chat')">
+            <div class="cta-icon" id="home-cta-icon">💪</div>
+            <div class="cta-body">
+              <div class="cta-title" id="home-cta-title">Start Today's Workout</div>
+              <div class="cta-sub" id="home-cta-sub">Tap to begin your AI-guided session</div>
+            </div>
+            <div class="cta-arrow">→</div>
+          </div>
+
+          <!-- Stats row -->
+          <div class="home-stats-row">
+            <div class="hstat-card">
+              <div class="hstat-val" id="hs-workouts">—</div>
+              <div class="hstat-label">workouts</div>
+            </div>
+            <div class="hstat-card">
+              <div class="hstat-val" id="hs-streak">—</div>
+              <div class="hstat-label">day streak</div>
+            </div>
+            <div class="hstat-card">
+              <div class="hstat-val" id="hs-badges">—</div>
+              <div class="hstat-label">badges</div>
+            </div>
+            <div class="hstat-card">
+              <div class="hstat-val" id="hs-weight">—</div>
+              <div class="hstat-label">kg logged</div>
+            </div>
+          </div>
+
+          <!-- Quick access -->
+          <div class="home-section-label">Quick Access</div>
+          <div class="home-quick-grid">
+            <div class="hgrid-card" onclick="switchTab('chat')">
+              <div class="hgrid-icon">🤖</div>
+              <div class="hgrid-title">AI Coach</div>
+              <div class="hgrid-sub">Chat & workout</div>
+            </div>
+            <div class="hgrid-card" onclick="switchTab('recovery')">
+              <div class="hgrid-icon">🛌</div>
+              <div class="hgrid-title">Recovery</div>
+              <div class="hgrid-sub">Log your readiness</div>
+            </div>
+            <div class="hgrid-card" onclick="switchTab('trainer')">
+              <div class="hgrid-icon">◎</div>
+              <div class="hgrid-title">Ghost Trainer</div>
+              <div class="hgrid-sub">Live form coach</div>
+            </div>
+            <div class="hgrid-card" onclick="switchTab('calories')">
+              <div class="hgrid-icon">🥗</div>
+              <div class="hgrid-title">Nutrition</div>
+              <div class="hgrid-sub">Track calories</div>
+            </div>
+            <div class="hgrid-card" onclick="switchTab('progress')">
+              <div class="hgrid-icon">📊</div>
+              <div class="hgrid-title">Progress</div>
+              <div class="hgrid-sub">Charts & badges</div>
+            </div>
+          </div>
+
+        </div>
+
+        <!-- RIGHT: Week + Quote + Tip -->
+        <div class="home-right">
+
+          <div class="home-section-label">This Week</div>
+          <div class="home-week-row" id="home-week-row">
+            <!-- filled by JS -->
+          </div>
+
+          <div class="home-section-label">Daily Quote</div>
+          <div class="home-quote-card" id="home-quote-card">
+            <div class="quote-mark">"</div>
+            <div class="quote-text" id="home-quote-text">The body achieves what the mind believes.</div>
+            <div class="quote-author" id="home-quote-author">— Anonymous</div>
+          </div>
+
+          <div class="home-tip-card" id="home-tip-card">
+            <div class="tip-label">💡 Coach tip</div>
+            <div class="tip-text" id="home-tip-text">Log your recovery every morning for smarter, injury-aware workouts.</div>
+          </div>
+
+        </div>
+
+      </div><!-- end home-main-grid -->
+
+      <section class="home-story-section elite-mindset-section reveal-on-scroll">
+        <div class="story-copy">
+          <span>Elite Mindset</span>
+          <h2>Train like the person you are becoming.</h2>
+          <p>FitCoach AI turns today's effort into a cinematic training path: one decision, one session, one stronger identity at a time.</p>
+          <div class="story-actions">
+            <button class="home-ghost-btn" onclick="switchTab('chat')">Open Coach</button>
+            <button class="home-ghost-btn" onclick="switchTab('trainer')">Start Form Lab</button>
+          </div>
+        </div>
+        <div class="athlete-artboard sprinter-scene" aria-hidden="true">
+          <div class="scene-light"></div>
+          <div class="track-lines"></div>
+          <div class="athlete-figure runner"></div>
+          <div class="motion-streak streak-a"></div>
+          <div class="motion-streak streak-b"></div>
+        </div>
+      </section>
+
+      <section class="home-story-section quote-cinema-section reveal-on-scroll">
+        <div class="home-section-head editorial-head">
+          <div><span>Daily Motivation</span><h2>Words that make the room feel different.</h2></div>
+        </div>
+        <div class="quote-cinema-grid">
+          <article class="quote-poster main-quote">
+            <span>Kobe Bryant</span>
+            <h3>"The most important thing is to try and inspire people."</h3>
+            <p>Mamba mentality is not noise. It is repeated focus under pressure.</p>
+          </article>
+          <article class="quote-poster">
+            <span>Michael Jordan</span>
+            <h3>"I've failed over and over and over again. That is why I succeed."</h3>
+          </article>
+          <article class="quote-poster">
+            <span>Muhammad Ali</span>
+            <h3>"Don't count the days. Make the days count."</h3>
+          </article>
+          <article class="quote-poster">
+            <span>David Goggins</span>
+            <h3>"Discipline creates freedom."</h3>
+          </article>
+        </div>
+      </section>
+
+      <section class="home-story-section culture-section reveal-on-scroll">
+        <div class="culture-visual gym-scene" aria-hidden="true">
+          <div class="gym-window"></div>
+          <div class="barbell"></div>
+          <div class="athlete-figure lifter"></div>
+        </div>
+        <div class="story-copy">
+          <span>Training Culture</span>
+          <h2>The gym is a stage. Your discipline is the performance.</h2>
+          <p>Warm lights, heavy air, quiet focus. The platform keeps the science in the background so the session feels human again.</p>
+          <div class="culture-tags">
+            <b id="home-target-muscles">Push + Core</b>
+            <b id="home-ai-reco">Prime warm-up</b>
+            <b id="home-est-calories">320 kcal</b>
+          </div>
+        </div>
+      </section>
+
+      <section class="home-story-section coach-narrative-section reveal-on-scroll">
+        <div class="home-section-head editorial-head">
+          <div><span>AI Coach Insights</span><h2>Less dashboard. More direction.</h2></div>
+        </div>
+        <div class="coach-narrative-grid">
+          <article class="coach-note featured-note">
+            <span>Today's coaching call</span>
+            <h3 id="home-focus-title">Strength and recovery balance</h3>
+            <p id="home-focus-copy">AI recommends a focused session with controlled intensity and crisp form.</p>
+          </article>
+          <article class="coach-note">
+            <span>Recovery narrative</span>
+            <p id="home-insight-recovery">Log readiness to unlock today's intensity call.</p>
+          </article>
+          <article class="coach-note">
+            <span>Performance story</span>
+            <p>Your consistency is rising. You are building elite-level discipline, not just completing workouts.</p>
+          </article>
+        </div>
+        <div class="readiness-strip" id="home-focus-readiness"><strong>82</strong><span>Readiness tone</span></div>
+      </section>
+
+      <section class="home-story-section athlete-spotlight-section reveal-on-scroll">
+        <div class="story-copy">
+          <span>Athlete Spotlight</span>
+          <h2>Champions train differently before anyone notices.</h2>
+          <p>Borrow the mindset: Ronaldo's repetition, Arnold's progressive focus, Jordan's obsession with response after failure.</p>
+        </div>
+        <div class="spotlight-editorial-grid">
+          <article><span>Cristiano Ronaldo</span><strong>Relentless standards</strong><p>Stack boring excellence until it becomes identity.</p></article>
+          <article><span>Arnold Schwarzenegger</span><strong>Vision first</strong><p>See the physique, then earn it rep by rep.</p></article>
+          <article><span>Serena Williams</span><strong>Composure</strong><p>Pressure is information. Your response is the training.</p></article>
+        </div>
+      </section>
+
+      <section class="home-story-section discipline-gallery-section reveal-on-scroll">
+        <div class="home-section-head editorial-head">
+          <div><span>Discipline Gallery</span><h2>Moments that make the athlete.</h2></div>
+        </div>
+        <div class="discipline-gallery-grid">
+          <article class="discipline-frame morning">
+            <div class="frame-visual"></div>
+            <span>Morning standard</span>
+            <strong>Show up before motivation arrives.</strong>
+          </article>
+          <article class="discipline-frame training">
+            <div class="frame-visual"></div>
+            <span>Session focus</span>
+            <strong>Move with purpose, not noise.</strong>
+          </article>
+          <article class="discipline-frame recovery">
+            <div class="frame-visual"></div>
+            <span>Quiet recovery</span>
+            <strong>Let adaptation finish the work.</strong>
+          </article>
+        </div>
+      </section>
+
+      <section class="home-story-section recovery-story-section reveal-on-scroll">
+        <div class="recovery-story-panel">
+          <span>Recovery Intelligence</span>
+          <h2>Recovery is not a pause. It is part of the build.</h2>
+          <p>Your body is always giving signals. FitCoach translates them into smarter intensity, better timing, and fewer reckless sessions.</p>
+          <div class="story-micro-row">
+            <div><b id="home-recovery-score-big">--</b><small>readiness signal</small></div>
+            <div><b id="home-muscle-fatigue">Moderate</b><small>muscle fatigue</small></div>
+            <div><b id="home-perf-recovery">Stable</b><small>recovery trend</small></div>
+          </div>
+        </div>
+        <div class="athlete-artboard recovery-scene" aria-hidden="true">
+          <div class="recovery-aura"></div>
+          <div class="athlete-figure standing"></div>
+        </div>
+      </section>
+
+      <section class="home-story-section fuel-story-section reveal-on-scroll">
+        <div class="home-section-head editorial-head">
+          <div><span>Fuel Story</span><h2>Nutrition should feel like momentum, not accounting.</h2></div>
+          <button class="home-ghost-btn" onclick="switchTab('calories')">Scan Meal</button>
+        </div>
+        <div class="fuel-editorial-grid">
+          <article><span>Before training</span><strong>Fast energy, light stomach.</strong><p>Carbs become confidence when timing is right.</p></article>
+          <article><span>After training</span><strong>Protein anchors recovery.</strong><p>Give the system material to rebuild what you asked it to improve.</p></article>
+          <article><span>Next meal</span><strong>Build a plate with intent.</strong><p>Lean protein, colorful produce, and a carb source that matches your session.</p></article>
+        </div>
+      </section>
+
+      <section class="home-story-section night-session-section reveal-on-scroll">
+        <div class="story-copy">
+          <span>Road to Prime</span>
+          <h2>The best version of you is built in ordinary sessions.</h2>
+          <p>No single workout changes everything. The magic is quieter: the warm-up you did properly, the final set you respected, the meal you did not skip, the sleep you protected.</p>
+        </div>
+        <div class="night-session-strip">
+          <div><span>Warm-up</span><strong>Earn intensity</strong></div>
+          <div><span>Training</span><strong>Stay technical</strong></div>
+          <div><span>Fuel</span><strong>Recover on purpose</strong></div>
+          <div><span>Sleep</span><strong>Lock adaptation</strong></div>
+        </div>
+      </section>
+
+      <section class="home-story-section final-manifesto-section reveal-on-scroll">
+        <div class="footer-system-card">
+          <span>FitCoach AI athlete system</span>
+          <h2>Keep showing up. The body follows the story you repeat.</h2>
+          <p>Today's streak is not a number. It is proof that the athlete identity is still alive.</p>
+          <div class="footer-status-row subtle-story-stats">
+            <div><b id="home-footer-streak">0</b><small>day streak</small></div>
+            <div><b id="home-footer-recovery">--</b><small>recovery state</small></div>
+            <div><b id="home-perf-consistency">--</b><small>sessions logged</small></div>
+            <div><b id="home-perf-calories">--</b><small>energy story</small></div>
+          </div>
+        </div>
+      </section>
+
+    </div><!-- end home-shell -->
+  </div><!-- end tab-home -->
+
+  <div id="tab-visualos" class="tab-content">
+    <div class="visual-os-shell">
+      <header class="visual-os-hero">
+        <div>
+          <span class="vo-eyebrow">Appearance Lab</span>
+          <h1>Visual OS</h1>
+          <p>Choose the athlete environment your system lives in. Every mode changes the atmosphere, glow language, cards, buttons, rings, and training cockpit mood.</p>
+        </div>
+        <button class="vo-auto-toggle theme-auto-btn" id="theme-auto-btn" type="button" onclick="toggleAutoTheme()" aria-pressed="false">
+          <span>Auto AI Environment</span>
+          <small>Adapts by workout, recovery, nutrition, and profile context</small>
+        </button>
+      </header>
+
+      <section class="visual-theme-grid" aria-label="Visual OS theme cards">
+        <button class="visual-theme-card theme-card-galaxy" type="button" data-theme-option="galaxy" onclick="setAthleteTheme('galaxy')">
+          <div class="theme-preview"><i></i><b></b><em></em></div>
+          <div class="theme-card-copy"><span>Galaxy Purple</span><strong>Futuristic athlete operating system</strong><p>Deep navy, violet glow, holographic borders, and soft galaxy atmosphere.</p></div>
+          <div class="theme-palette"><i></i><i></i><i></i><i></i></div>
+        </button>
+        <button class="visual-theme-card theme-card-carbon" type="button" data-theme-option="carbon" onclick="setAthleteTheme('carbon')">
+          <div class="theme-preview"><i></i><b></b><em></em></div>
+          <div class="theme-card-copy"><span>Carbon Black</span><strong>Elite stealth performance lab</strong><p>Matte graphite surfaces, metallic highlights, and quiet luxury contrast.</p></div>
+          <div class="theme-palette"><i></i><i></i><i></i><i></i></div>
+        </button>
+        <button class="visual-theme-card theme-card-cyan" type="button" data-theme-option="cyan" onclick="setAthleteTheme('cyan')">
+          <div class="theme-preview"><i></i><b></b><em></em></div>
+          <div class="theme-card-copy"><span>Neon Cyan</span><strong>Sports science AI cockpit</strong><p>Black glass, cyan scanlines, tech-grid overlays, and energetic AI pulse.</p></div>
+          <div class="theme-palette"><i></i><i></i><i></i><i></i></div>
+        </button>
+        <button class="visual-theme-card theme-card-gold" type="button" data-theme-option="gold" onclick="setAthleteTheme('gold')">
+          <div class="theme-preview"><i></i><b></b><em></em></div>
+          <div class="theme-card-copy"><span>Elite Gold</span><strong>VIP athlete system</strong><p>Champagne glow, cinematic gold shimmer, and premium status energy.</p></div>
+          <div class="theme-palette"><i></i><i></i><i></i><i></i></div>
+        </button>
+        <button class="visual-theme-card theme-card-ice" type="button" data-theme-option="ice" onclick="setAthleteTheme('ice')">
+          <div class="theme-preview"><i></i><b></b><em></em></div>
+          <div class="theme-card-copy"><span>Ice White</span><strong>Frosted recovery intelligence</strong><p>Clean white glass, silver blur, cold blue highlights, and calm focus.</p></div>
+          <div class="theme-palette"><i></i><i></i><i></i><i></i></div>
+        </button>
+      </section>
+
+      <section class="visual-os-settings-grid">
+        <article class="vo-settings-card">
+          <span>Atmosphere Controls</span>
+          <h2>Motion, glow, and particle feel</h2>
+          <label><b>Motion intensity</b><input type="range" min="0" max="100" value="62"/></label>
+          <label><b>Glow intensity</b><input type="range" min="0" max="100" value="78"/></label>
+          <label><b>Particle density</b><input type="range" min="0" max="100" value="44"/></label>
+        </article>
+        <article class="vo-settings-card">
+          <span>Interface Modes</span>
+          <h2>Choose your operating posture</h2>
+          <div class="vo-chip-stack">
+            <button type="button">Compact Mode</button>
+            <button type="button" class="active">Cinematic Mode</button>
+            <button type="button">Focus Mode</button>
+          </div>
+        </article>
+        <article class="vo-settings-card">
+          <span>AI Environment</span>
+          <h2>Adaptive theme intelligence</h2>
+          <div class="vo-adaptive-list">
+            <div><strong>Workout-based themes</strong><small>Trainer and workout spaces can shift into Carbon or Galaxy.</small></div>
+            <div><strong>Recovery themes</strong><small>Recovery context can move into Ice White calm mode.</small></div>
+            <div><strong>Nutrition themes</strong><small>Food intelligence can glow with Neon Cyan lab energy.</small></div>
+          </div>
+        </article>
+      </section>
+    </div>
+  </div>
+
+  <div id="tab-chat" class="tab-content">
+    <div class="chat-shell">
+
+      <!-- Header with mode switcher -->
+      <div class="chat-header">
+        <div class="coach-avatar" id="coach-avatar">⚡</div>
+        <div class="coach-info">
+          <div class="coach-name" id="coach-name">FitCoach AI</div>
+          <div class="coach-status"><span class="status-dot"></span> <span id="coach-mode-label">Gym Mode</span></div>
+        </div>
+        <div class="header-actions">
+          <div class="streak-badge" id="streak-badge">🔥 0</div>
+          <!-- Compact mode switcher (mobile) -->
+          <div class="mode-switch-compact" id="mode-switch-compact">
+            <button class="mode-pill active" id="mp-gym" onclick="setWorkoutMode('gym')">🏋️</button>
+            <button class="mode-pill" id="mp-sport" onclick="setWorkoutMode('sport')">🏆</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recovery banner -->
+      <div id="recovery-banner" class="recovery-banner hidden">
+        <span id="recovery-banner-icon">🟢</span>
+        <span id="recovery-banner-text">Recovery: Green — Full intensity today</span>
+        <button class="recovery-banner-btn" onclick="switchTab('recovery')">Update</button>
+      </div>
+
+      <section class="coach-command-center">
+        <div class="coach-command-copy">
+          <div class="coach-kicker">AI Fitness Command Center</div>
+          <h2>Today's athlete protocol</h2>
+          <p>Adaptive workout intelligence, recovery-aware coaching, and nutrition decisions in one cinematic dashboard.</p>
+          <div class="coach-protocol-row">
+            <span id="coach-protocol-chip">Strength protocol</span>
+            <span id="coach-recovery-chip">Recovery: scanning</span>
+            <span id="coach-fatigue-chip">Fatigue: nominal</span>
+          </div>
+        </div>
+        <div class="coach-readiness-ring" id="coach-readiness-ring"><strong id="coach-readiness-value">82</strong><span>Readiness</span></div>
+        <div class="coach-silhouette" aria-hidden="true"></div>
+      </section>
+
+      <section class="coach-os-grid">
+        <div class="coach-os-card"><span>Current split</span><strong id="coach-current-split">AI Guided</strong><i></i></div>
+        <div class="coach-os-card"><span>Recovery status</span><strong id="coach-recovery-status">Ready</strong><i></i></div>
+        <div class="coach-os-card"><span>Streak engine</span><strong id="coach-streak-status">Active</strong><i></i></div>
+        <div class="coach-os-card"><span>Muscle map</span><strong>Balanced</strong><i></i></div>
+      </section>
+
+      <!-- Messages -->
+      <div id="chat-box" class="chat-box"></div>
+
+      <!-- Workout progress bar -->
+      <div id="workout-progress-bar" class="workout-progress-bar hidden">
+        <div class="wpb-label">
+          <span id="wpb-exercise">Exercise 1/5</span>
+          <span id="wpb-set">Set 1/3</span>
+        </div>
+        <div class="wpb-track"><div class="wpb-fill" id="wpb-fill"></div></div>
+      </div>
+
+      <!-- Exercise demo card -->
+      <div id="exercise-demo-card" class="exercise-demo-card hidden">
+        <div class="demo-video-wrap">
+          <div class="holo-stage motion-squat zone-green" aria-hidden="true"></div>
+        </div>
+        <div class="demo-info">
+          <div class="demo-name" id="demo-name">Exercise</div>
+          <div class="demo-meta">
+            <span class="demo-tag" id="demo-sets"></span>
+            <span class="demo-tag" id="demo-reps"></span>
+            <span class="demo-tag" id="demo-rest"></span>
+          </div>
+          <div class="demo-muscle" id="demo-muscle"></div>
+          <div class="demo-weight" id="demo-weight"></div>
+        </div>
+      </div>
+
+      <!-- Rest timer -->
+      <div id="rest-timer" class="rest-timer hidden">
+        <div class="rt-label">⏱ Rest <span id="rt-count">60</span>s</div>
+        <div class="rt-track"><div class="rt-fill" id="rt-fill" style="width:100%"></div></div>
+        <button onclick="skipTimer()" class="rt-skip">Skip →</button>
+      </div>
+
+      <!-- Workout action buttons -->
+      <div id="workout-action-btns" class="workout-action-btns hidden"></div>
+      <div id="feedback-btns" class="feedback-btns hidden"></div>
+
+      <!-- Quick actions -->
+      <div id="quick-actions" class="quick-actions">
+        <button onclick="startWorkout()" class="qa-btn qa-start">⚡ Start Workout</button>
+        <button onclick="quickSend('How should I eat today?')" class="qa-btn">🥗 Nutrition</button>
+        <button onclick="quickSend('Give me a recovery tip')" class="qa-btn">💆 Recovery</button>
+      </div>
+
+      <!-- Input bar -->
+      <div class="chat-input-area">
+        <button id="voice-btn" class="voice-btn" onclick="toggleVoice()">🎤</button>
+        <input type="text" id="message" placeholder="Ask your coach…" onkeydown="handleKey(event)"/>
+        <button class="send-btn" onclick="sendMessage()">➤</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== GHOST TRAINER TAB ===== -->
+  <div id="tab-trainer" class="tab-content">
+    <div class="ghost-shell">
+      <div class="ghost-hero">
+        <div>
+          <div class="ghost-kicker">Ghost Trainer · Live Form AI</div>
+          <h2 class="ghost-title">Real-time pose coaching</h2>
+          <p class="ghost-subtitle">Webcam skeleton tracking, joint-angle analysis, rep counting, and posture feedback inside your FitCoach dashboard.</p>
+        </div>
+        <div class="ghost-status-pill" id="ghost-status-pill"><span></span> Camera idle</div>
+      </div>
+
+      <div class="ghost-layout">
+        <section class="ghost-stage-card">
+          <div class="ghost-stage" id="ghost-stage">
+            <video id="ghost-video" class="ghost-video" playsinline muted></video>
+            <canvas id="ghost-canvas" class="ghost-canvas"></canvas>
+
+            <div class="ghost-scan-grid"></div>
+            <div class="ghost-idle-overlay" id="ghost-idle-overlay">
+              <div class="ghost-orbit">AI</div>
+              <h3 id="ghost-overlay-title">Step into frame</h3>
+              <p id="ghost-overlay-copy">Choose an exercise, stand far enough for full-body visibility, then allow camera access.</p>
+              <button class="ghost-primary-btn" id="ghost-start-btn" type="button">Begin Session</button>
+            </div>
+
+            <button class="ghost-end-btn hidden" id="ghost-stop-btn" type="button">End Session</button>
+            <div class="ghost-live-cue hidden" id="ghost-live-cue">Good posture</div>
+          </div>
+        </section>
+
+        <aside class="ghost-panel">
+          <div class="ghost-exercise-selector" id="ghost-exercise-selector">
+            <button class="ghost-exercise-btn active" type="button" data-exercise="squat">
+              <span>Bodyweight Squat</span><small>Knees & hips</small>
+            </button>
+            <button class="ghost-exercise-btn" type="button" data-exercise="pushup">
+              <span>Push-up</span><small>Chest & core</small>
+            </button>
+            <button class="ghost-exercise-btn" type="button" data-exercise="biceps">
+              <span>Biceps Curl</span><small>Right arm</small>
+            </button>
+          </div>
+
+          <div class="ghost-stat-grid">
+            <div class="ghost-stat-card ghost-stat-primary">
+              <span>Rep target</span>
+              <div class="ghost-rep-ring" id="ghost-rep-ring" style="--rep-progress:0">
+                <svg viewBox="0 0 120 120" aria-hidden="true">
+                  <circle class="ghost-ring-bg" cx="60" cy="60" r="52"></circle>
+                  <circle class="ghost-ring-fill" cx="60" cy="60" r="52"></circle>
+                </svg>
+                <div class="ghost-ring-value">
+                  <strong id="ghost-reps">0</strong>
+                  <small>/ <span id="ghost-target-reps">12</span></small>
+                </div>
+              </div>
+            </div>
+            <div class="ghost-stat-card ghost-accuracy-card" id="ghost-accuracy-card">
+              <span>Accuracy</span>
+              <strong id="ghost-accuracy">100%</strong>
+              <small id="ghost-accuracy-label">Textbook execution</small>
+            </div>
+            <div class="ghost-stat-card">
+              <span>Timer</span>
+              <strong id="ghost-timer">00:00</strong>
+            </div>
+          </div>
+
+          <div class="ghost-muscle-card">
+            <div class="ghost-card-label">Muscle activation</div>
+            <div id="ghost-muscle-list" class="ghost-muscle-list"></div>
+          </div>
+
+          <div class="ghost-demo-card">
+            <div class="ghost-card-label">Form reference</div>
+            <div class="ghost-demo-figure" id="ghost-demo-figure" aria-hidden="true"></div>
+            <p id="ghost-demo-copy">Match the ghost outline: hips back, knees tracking, chest tall.</p>
+          </div>
+
+          <div class="ghost-depth-card">
+            <div class="ghost-card-label">Range depth</div>
+            <div class="ghost-depth-track"><div id="ghost-depth-fill"></div></div>
+            <div class="ghost-angle-row"><span>Primary angle</span><strong id="ghost-angle">--°</strong></div>
+          </div>
+
+          <div class="ghost-brief-card">
+            <div class="ghost-card-label">AI coaching prompt</div>
+            <p id="ghost-brief">Feet shoulder-width. Hips back, chest tall. Drive through the heels.</p>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== RECOVERY TAB ===== -->
+  <div id="tab-recovery" class="tab-content">
+    <div class="recovery-shell">
+      <div class="cockpit-head">
+        <div>
+          <div class="cockpit-kicker">AI wellness intelligence</div>
+      <h2 class="tab-title">🛌 Recovery Check-In</h2>
+      <p class="tab-subtitle">Log your recovery so your coach adjusts today's session.</p>
+
+        </div>
+        <div class="cockpit-status-pill"><span></span> Live recovery model</div>
+      </div>
+
+      <div class="recovery-cockpit-grid">
+        <section class="recovery-left-stack">
+
+      <!-- Current score display -->
+      <div id="recovery-score-card" class="recovery-score-card hidden">
+        <div class="rs-zone-dot" id="rs-zone-dot"></div>
+        <div class="rs-score" id="rs-score">--</div>
+        <div class="rs-label" id="rs-label">No data yet</div>
+        <div class="rs-message" id="rs-message">Complete a check-in below</div>
+      </div>
+
+      <!-- Recovery form - ALL buttons/sliders, no typing -->
+      <div class="recovery-form">
+        <!-- Sleep Hours -->
+        <div class="rf-section">
+          <div class="rf-label">😴 Sleep last night</div>
+          <div class="ob-options" id="sleep-opts">
+            <button class="ob-option" onclick="selectRecovery('sleep','4','sleep-opts')">4h or less</button>
+            <button class="ob-option" onclick="selectRecovery('sleep','5.5','sleep-opts')">5–6h</button>
+            <button class="ob-option" onclick="selectRecovery('sleep','7','sleep-opts')">6–7h</button>
+            <button class="ob-option" onclick="selectRecovery('sleep','8','sleep-opts')">7–8h</button>
+            <button class="ob-option" onclick="selectRecovery('sleep','9','sleep-opts')">8h+</button>
+          </div>
+        </div>
+
+        <!-- Sleep Quality -->
+        <div class="rf-section">
+          <div class="rf-label">⭐ Sleep quality</div>
+          <div class="ob-options" id="squality-opts">
+            <button class="ob-option" onclick="selectRecovery('squality','1','squality-opts')">😫 Terrible</button>
+            <button class="ob-option" onclick="selectRecovery('squality','2','squality-opts')">😕 Poor</button>
+            <button class="ob-option" onclick="selectRecovery('squality','3','squality-opts')">😐 OK</button>
+            <button class="ob-option" onclick="selectRecovery('squality','4','squality-opts')">😊 Good</button>
+            <button class="ob-option" onclick="selectRecovery('squality','5','squality-opts')">😁 Great</button>
+          </div>
+        </div>
+
+        <!-- Fatigue -->
+        <div class="rf-section">
+          <div class="rf-label">⚡ Energy / Fatigue level</div>
+          <div class="ob-options" id="fatigue-opts">
+            <button class="ob-option" onclick="selectRecovery('fatigue','5','fatigue-opts')">💀 Exhausted</button>
+            <button class="ob-option" onclick="selectRecovery('fatigue','4','fatigue-opts')">😩 Very tired</button>
+            <button class="ob-option" onclick="selectRecovery('fatigue','3','fatigue-opts')">😐 Average</button>
+            <button class="ob-option" onclick="selectRecovery('fatigue','2','fatigue-opts')">😊 Fresh</button>
+            <button class="ob-option" onclick="selectRecovery('fatigue','1','fatigue-opts')">🔥 Fully charged</button>
+          </div>
+        </div>
+
+        <!-- Soreness -->
+        <div class="rf-section">
+          <div class="rf-label">💪 Muscle soreness</div>
+          <div class="ob-options" id="soreness-opts">
+            <button class="ob-option" onclick="selectRecovery('soreness','5','soreness-opts')">🔴 Severe</button>
+            <button class="ob-option" onclick="selectRecovery('soreness','4','soreness-opts')">🟠 Heavy</button>
+            <button class="ob-option" onclick="selectRecovery('soreness','3','soreness-opts')">🟡 Moderate</button>
+            <button class="ob-option" onclick="selectRecovery('soreness','2','soreness-opts')">🟢 Mild</button>
+            <button class="ob-option" onclick="selectRecovery('soreness','1','soreness-opts')">✅ None</button>
+          </div>
+        </div>
+
+        <!-- Yesterday's load -->
+        <div class="rf-section">
+          <div class="rf-label">🏋️ Yesterday's training load</div>
+          <div class="ob-options" id="load-opts">
+            <button class="ob-option" onclick="selectRecovery('load','1','load-opts')">😴 Rest day</button>
+            <button class="ob-option" onclick="selectRecovery('load','2','load-opts')">🚶 Light</button>
+            <button class="ob-option" onclick="selectRecovery('load','3','load-opts')">🏃 Moderate</button>
+            <button class="ob-option" onclick="selectRecovery('load','4','load-opts')">💪 Hard</button>
+            <button class="ob-option" onclick="selectRecovery('load','5','load-opts')">🔥 Max effort</button>
+          </div>
+        </div>
+
+        <div id="recovery-error" class="ob-error hidden">Please answer all questions</div>
+        <button class="btn-primary" id="recovery-submit-btn" onclick="submitRecovery()">
+          <span>Calculate Recovery Score</span><span class="btn-arrow">→</span>
+        </button>
+      </div>
+        </section>
+
+        <aside class="recovery-intel-rail">
+          <div class="body-map-card">
+            <div class="widget-title">Body recovery map</div>
+            <div class="body-holo-map" id="recovery-body-map">
+              <div class="body-node head"></div>
+              <div class="body-node chest"></div>
+              <div class="body-node core"></div>
+              <div class="body-node arm-l"></div>
+              <div class="body-node arm-r"></div>
+              <div class="body-node leg-l"></div>
+              <div class="body-node leg-r"></div>
+            </div>
+            <div class="map-legend"><span class="ok"></span> Recovered <span class="warn"></span> Load <span class="risk"></span> Fatigue</div>
+          </div>
+
+          <div class="recovery-metric-grid">
+            <div class="recovery-metric-card"><span>Hydration</span><strong id="recovery-hydration">Optimal</strong><i></i></div>
+            <div class="recovery-metric-card"><span>Nervous system</span><strong id="recovery-ns">Stable</strong><i></i></div>
+            <div class="recovery-metric-card"><span>Sleep quality</span><strong id="recovery-sleep-read">Pending</strong><i></i></div>
+            <div class="recovery-metric-card"><span>Readiness trend</span><strong id="recovery-trend">Awaiting check-in</strong><i></i></div>
+          </div>
+
+          <div class="ai-fatigue-card">
+            <div class="widget-title">AI fatigue analysis</div>
+            <p id="recovery-ai-note">Answer the readiness prompts to activate recovery guidance and workout intensity recommendations.</p>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== PROGRESS TAB ===== -->
+  <div id="tab-progress" class="tab-content">
+    <div class="progress-shell">
+      <h2 class="tab-title">📊 Progress</h2>
+      <div class="stats-grid">
+        <div class="stat-card purple"><div class="stat-icon">⚖️</div><div class="stat-value" id="stat-weight-lost">--</div><div class="stat-label">kg Lost</div></div>
+        <div class="stat-card green"><div class="stat-icon">🏋️</div><div class="stat-value" id="stat-workouts">--</div><div class="stat-label">Workouts</div></div>
+        <div class="stat-card orange"><div class="stat-icon">🔥</div><div class="stat-value" id="stat-streak">--</div><div class="stat-label">Streak</div></div>
+        <div class="stat-card blue"><div class="stat-icon">🏆</div><div class="stat-value" id="stat-badges">--</div><div class="stat-label">Badges</div></div>
+      </div>
+      <div class="charts-row">
+        <div class="chart-card"><h3>Weight Trend</h3><div class="chart-box"><canvas id="weightChart"></canvas></div></div>
+        <div class="chart-card"><h3>Weekly Workouts</h3><div class="chart-box"><canvas id="weeklyChart"></canvas></div></div>
+      </div>
+      <div class="charts-row">
+        <div class="chart-card"><h3>Muscle Groups</h3><div class="chart-box chart-box-sm"><canvas id="muscleChart"></canvas></div></div>
+        <div class="chart-card"><h3>Activity Heatmap</h3><div id="heatmap-grid" class="heatmap-grid"></div></div>
+      </div>
+      <div class="badges-section"><h3>Badges Earned</h3><div id="badges-container" class="badges-container"></div></div>
+    </div>
+  </div>
+
+  <!-- ===== CALORIES TAB ===== -->
+  <div id="tab-calories" class="tab-content">
+    <div class="calories-shell">
+      <h2 class="tab-title">🥗 Calorie Counter</h2>
+      <p class="tab-subtitle">Type what you ate, or upload a photo.</p>
+      <section class="nutrition-lab-hero">
+        <div>
+          <div class="cockpit-kicker">AI nutrition intelligence lab</div>
+          <h2 class="tab-title">Macro Scanner OS</h2>
+          <p class="tab-subtitle">Upload food or describe a meal to visualize macros, quality, and goal compatibility.</p>
+          <div class="nutrition-hero-badges">
+            <span>Vision ready</span><span>Macro rings</span><span>Goal scoring</span>
+          </div>
+        </div>
+        <div class="nutrition-orbit-panel">
+          <div class="nutrition-orbit"><strong>AI</strong><span>Food Score</span></div>
+          <div class="nutrition-spark-bars"><i></i><i></i><i></i><i></i></div>
+        </div>
+      </section>
+      <div class="calories-lab-grid">
+      <div class="cal-input-card">
+        <div class="cal-input-tabs">
+          <button class="cal-tab active" id="cal-tab-text" onclick="switchCalTab('text')">✍️ Type Food</button>
+          <button class="cal-tab" id="cal-tab-photo" onclick="switchCalTab('photo')">📷 Photo</button>
+        </div>
+        <div id="cal-text-section">
+          <textarea id="cal-food-input" class="cal-textarea" placeholder="e.g. 2 rotis with dal, 1 cup rice, 1 banana…" rows="4"></textarea>
+          <button class="btn-primary" onclick="analyzeCalories()"><span>Analyze Calories</span><span class="btn-arrow">→</span></button>
+        </div>
+        <div id="cal-photo-section" class="hidden">
+          <div class="photo-drop" onclick="document.getElementById('food-photo-input').click()">
+            <div class="photo-drop-icon">📷</div>
+            <p>Click to upload food photo</p>
+            <small>JPG, PNG supported</small>
+          </div>
+          <input type="file" id="food-photo-input" accept="image/*" style="display:none" onchange="handleFoodPhoto(event)"/>
+          <div id="photo-preview-wrap" class="hidden">
+            <img id="food-photo-preview" class="food-photo-preview" src="" alt="Food preview"/>
+            <button class="btn-primary" onclick="analyzePhotoCalories()"><span>Analyze Photo</span><span class="btn-arrow">→</span></button>
+          </div>
+        </div>
+      </div>
+      <div id="cal-result" class="cal-result hidden">
+        <div class="cal-result-header"><span class="cal-result-icon">📊</span><span>Calorie Breakdown</span></div>
+        <div id="cal-result-body" class="cal-result-body"></div>
+      </div>
+      <div id="cal-loading" class="cal-loading hidden">
+        <div class="typing-dots"><span></span><span></span><span></span></div>
+        <p>Analyzing your food…</p>
+      </div>
+      <aside class="nutrition-side-rail">
+        <div class="nutrition-side-card">
+          <div class="widget-title">Daily macro lens</div>
+          <div class="side-macro"><span>Protein focus</span><i style="--w:76%"></i></div>
+          <div class="side-macro"><span>Carb timing</span><i style="--w:58%"></i></div>
+          <div class="side-macro"><span>Recovery quality</span><i style="--w:68%"></i></div>
+        </div>
+        <div class="nutrition-side-card ai">
+          <div class="widget-title">AI meal strategy</div>
+          <p>Prioritize protein anchors, fiber, and timed carbs around training for a leaner, stronger physique.</p>
+        </div>
+      </aside>
+      <section class="nutrition-flow-grid">
+        <div class="nutrition-side-card next-meal">
+          <div class="widget-title">Suggested next meal</div>
+          <h3>Lean protein bowl</h3>
+          <p>Build the next plate around grilled protein, slow carbs, vegetables, and hydration.</p>
+        </div>
+        <div class="nutrition-side-card daily-totals">
+          <div class="widget-title">Daily totals</div>
+          <div class="daily-total-row"><span>Calories</span><strong id="daily-calories-preview">--</strong></div>
+          <div class="daily-total-row"><span>Protein</span><strong id="daily-protein-preview">--</strong></div>
+          <div class="daily-total-row"><span>Carbs</span><strong id="daily-carbs-preview">--</strong></div>
+          <div class="daily-total-row"><span>Fats</span><strong id="daily-fats-preview">--</strong></div>
+        </div>
+        <div class="nutrition-side-card footer-insight">
+          <div class="widget-title">Premium insight</div>
+          <p>Use this scanner before and after training to keep meals aligned with fat loss, lean physique, recovery, and performance goals.</p>
+        </div>
+      </section>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== PROFILE TAB ===== -->
+  <div id="tab-profile" class="tab-content">
+    <div class="profile-shell">
+      <div class="cockpit-head">
+        <div>
+          <div class="cockpit-kicker">AI athlete dossier</div>
+          <h2 class="tab-title">Your Profile</h2>
+          <p class="tab-subtitle">Training identity, body metrics, and personalization controls.</p>
+        </div>
+        <div class="cockpit-status-pill"><span></span> Athlete OS online</div>
+      </div>
+
+      <div class="profile-cockpit-grid">
+        <section class="profile-main-stack">
+      <div class="profile-avatar-section">
+        <div class="athlete-silhouette"></div>
+        <div class="profile-completion-ring" id="profile-completion-ring"><span id="profile-completion-value">72%</span></div>
+        <div class="profile-avatar" id="profile-avatar-display">🏋️</div>
+        <div class="profile-name-display" id="profile-name-display">Champion</div>
+        <div class="profile-goal-display" id="profile-goal-display">Loading…</div>
+        <div class="profile-hero-stats">
+          <div><span>Rank</span><strong id="profile-rank">Prime</strong></div>
+          <div><span>Readiness</span><strong id="profile-readiness">Green</strong></div>
+          <div><span>Protocol</span><strong id="profile-protocol">Strength</strong></div>
+        </div>
+        <!-- Sport badge in profile -->
+        <div id="profile-sport-badge" class="profile-sport-badge hidden"></div>
+      </div>
+
+      <!-- Activate sport mode button (for users who said No during onboarding) -->
+      <div id="activate-sport-wrap" class="activate-sport-wrap hidden">
+        <button class="btn-primary btn-sport-activate" onclick="startSportOnboarding()">
+          🏆 Activate Sport Mode
+        </button>
+      </div>
+
+      <div class="profile-form">
+        <div class="form-row">
+          <div class="form-group"><label>Name</label><input type="text" id="pf-name" class="form-input" placeholder="Your name"/></div>
+          <div class="form-group"><label>Age</label><input type="number" id="pf-age" class="form-input" placeholder="Age"/></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Gender</label>
+            <select id="pf-gender" class="form-input"><option value="male">Male</option><option value="female">Female</option></select>
+          </div>
+          <div class="form-group"><label>Weight (kg)</label><input type="number" id="pf-weight" class="form-input" step="0.1" placeholder="kg"/></div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Height (cm)</label><input type="number" id="pf-height" class="form-input" placeholder="cm"/></div>
+          <div class="form-group"><label>Days/Week</label>
+            <select id="pf-days" class="form-input">
+              <option value="3">3 days</option><option value="4">4 days</option><option value="5">5 days</option><option value="6">6 days</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Goal</label>
+            <select id="pf-goal" class="form-input">
+              <option value="fat loss">Fat Loss</option><option value="muscle gain">Muscle Gain</option>
+              <option value="strength">Strength</option><option value="general fitness">General Fitness</option>
+              <option value="toned body">Toned Body</option><option value="glute growth">Glute Growth</option>
+              <option value="lean physique">Lean Physique</option><option value="hourglass figure">Hourglass Figure</option>
+            </select>
+          </div>
+          <div class="form-group"><label>Level</label>
+            <select id="pf-level" class="form-input">
+              <option value="beginner">Beginner</option><option value="intermediate">Intermediate</option><option value="advanced">Advanced</option>
+            </select>
+          </div>
+        </div>
+        <div class="form-row">
+          <div class="form-group"><label>Workout Place</label>
+            <select id="pf-place" class="form-input"><option value="gym">🏋️ Gym</option><option value="home">🏠 Home</option></select>
+          </div>
+          <div class="form-group"><label>Injuries</label><input type="text" id="pf-injuries" class="form-input" placeholder="None"/></div>
+        </div>
+        <button class="btn-primary btn-save" onclick="saveProfile()">Save Changes ✅</button>
+      </div>
+        </section>
+
+        <aside class="profile-intel-rail">
+          <div class="body-metrics-card">
+            <div class="widget-title">Body metrics</div>
+            <div class="metric-dial-row">
+              <div class="metric-dial" id="profile-bmi-dial"><strong id="profile-bmi">--</strong><span>BMI</span></div>
+              <div class="metric-dial alt"><strong id="profile-training-days">3</strong><span>Days/wk</span></div>
+            </div>
+            <div class="profile-mini-bars">
+              <div><span>Strength base</span><i style="--w:74%"></i></div>
+              <div><span>Mobility reserve</span><i style="--w:62%"></i></div>
+              <div><span>Consistency</span><i id="profile-consistency-bar" style="--w:54%"></i></div>
+            </div>
+          </div>
+
+          <div class="profile-radar-card">
+            <div class="widget-title">Athlete radar</div>
+            <div class="radar-grid">
+              <div class="radar-shape"></div>
+              <span class="r1">Power</span><span class="r2">Recovery</span><span class="r3">Lean</span><span class="r4">Endurance</span>
+            </div>
+          </div>
+
+          <div class="ai-profile-card">
+            <div class="widget-title">AI identity insight</div>
+            <p id="profile-ai-insight">Complete your profile to unlock sharper workout calibration and recovery recommendations.</p>
+          </div>
+        </aside>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== GENERAL ONBOARDING OVERLAY ==================== -->
+<div id="onboarding-overlay" class="onboarding-overlay hidden">
+  <div class="onboarding-card">
+    <div class="ob-progress-bar"><div class="ob-progress-fill" id="ob-progress-fill"></div></div>
+    <div class="ob-step-label" id="ob-step-label">Step 1 of 11</div>
+    <div class="ob-question" id="ob-question">What should I call you?</div>
+    <div id="ob-input-area" class="ob-input-area"></div>
+    <button class="btn-primary ob-next-btn" id="ob-next-btn" onclick="onboardingNext()">Continue →</button>
+    <div id="ob-error" class="ob-error hidden"></div>
+  </div>
+</div>
+
+<!-- ==================== SPORT ONBOARDING OVERLAY ==================== -->
+<div id="sport-onboarding-overlay" class="onboarding-overlay hidden">
+  <div class="onboarding-card">
+    <div class="sport-ob-header">
+      <div class="sport-ob-badge">🏆 Sport Mode Setup</div>
+    </div>
+    <div class="ob-progress-bar" style="margin-top:12px"><div class="ob-progress-fill" id="sob-progress-fill"></div></div>
+    <div class="ob-step-label" id="sob-step-label">Step 1 of 5</div>
+    <div class="ob-question" id="sob-question">Which sport do you play?</div>
+    <div id="sob-input-area" class="ob-input-area"></div>
+    <button class="btn-primary ob-next-btn" id="sob-next-btn" onclick="sportOnboardingNext()">Continue →</button>
+    <div id="sob-error" class="ob-error hidden"></div>
+  </div>
+</div>
+
+<!-- TOAST & CONFETTI -->
+<div id="confetti-overlay" class="confetti-overlay hidden"></div>
+<div id="toast" class="toast hidden"></div>
+
+<script src="/static/script.js"></script>
+<script type="module" src="/static/js/ghost-trainer.js"></script>
+</body>
+</html>
